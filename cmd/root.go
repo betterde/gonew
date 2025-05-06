@@ -33,7 +33,7 @@ import (
 var rootCmd = &cobra.Command{
 	Use:     build.Name,
 	Short:   build.Desc,
-	Version: fmt.Sprintf("Version: %s\nBuild at: %s\nCommit hash: %s", build.Version, build.Build, build.Commit),
+	Version: fmt.Sprintf("Version: %s\n", build.Version),
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
