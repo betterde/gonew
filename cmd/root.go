@@ -22,7 +22,6 @@ THE SOFTWARE.
 package cmd
 
 import (
-	"fmt"
 	"github.com/betterde/gonew/internal/build"
 	"os"
 
@@ -33,7 +32,7 @@ import (
 var rootCmd = &cobra.Command{
 	Use:     build.Name,
 	Short:   build.Desc,
-	Version: fmt.Sprintf("Version: %s\n", build.Version),
+	Version: build.Version,
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.

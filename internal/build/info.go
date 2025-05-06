@@ -3,5 +3,5 @@ package build
 var (
 	Name    = "gonew"
 	Desc    = "A scaffolding tool for generating new projects using project templates"
-	Version = "v1.0.1"
+	Version = "v1.0.2"
 )
