@@ -210,20 +210,20 @@ func fixGo(data []byte, file string, srcMod, dstMod string, isRoot bool) []byte 
 	dstName := path.Base(dstMod)
 	if isRoot {
 		if name := f.Name.Name; name == srcName || name == srcName+"_test" {
-			dname := dstName + strings.TrimPrefix(name, srcName)
-			if !token.IsIdentifier(dname) {
-				log.Fatalf("%s: cannot rename package %s to package %s: invalid package name", file, name, dname)
+			target := dstName + strings.TrimPrefix(name, srcName)
+			if !token.IsIdentifier(target) {
+				log.Fatalf("%s: cannot rename package %s to package %s: invalid package name", file, name, target)
 			}
-			buf.Replace(at(f.Name.Pos()), at(f.Name.End()), dname)
+			buf.Replace(at(f.Name.Pos()), at(f.Name.End()), target)
 		}
 	}
 
 	for _, spec := range f.Imports {
-		path, err := strconv.Unquote(spec.Path.Value)
+		pathStr, err := strconv.Unquote(spec.Path.Value)
 		if err != nil {
 			continue
 		}
-		if path == srcMod {
+		if pathStr == srcMod {
 			if srcName != dstName && spec.Name == nil {
 				// Add package rename because source code uses original name.
 				// The renaming looks strange, but template authors are unlikely to
@@ -238,9 +238,9 @@ func fixGo(data []byte, file string, srcMod, dstMod string, isRoot bool) []byte 
 			// Change import path to dstMod
 			buf.Replace(at(spec.Path.Pos()), at(spec.Path.End()), strconv.Quote(dstMod))
 		}
-		if strings.HasPrefix(path, srcMod+"/") {
+		if strings.HasPrefix(pathStr, srcMod+"/") {
 			// Change import path to begin with dstMod
-			buf.Replace(at(spec.Path.Pos()), at(spec.Path.End()), strconv.Quote(strings.Replace(path, srcMod, dstMod, 1)))
+			buf.Replace(at(spec.Path.Pos()), at(spec.Path.End()), strconv.Quote(strings.Replace(pathStr, srcMod, dstMod, 1)))
 		}
 	}
 	return buf.Bytes()
@@ -339,7 +339,13 @@ func generateFile(data map[string]string, fileName, content, projectDir string) 
 	if err != nil {
 		return fmt.Errorf("error creating file %s: %v", fileName, err)
 	}
-	defer file.Close()
+
+	defer func(file *os.File) {
+		err = file.Close()
+		if err != nil {
+			log.Fatal(err)
+		}
+	}(file)
 
 	// Execute the template and write to file
 	if err := tmpl.Execute(file, data); err != nil {
