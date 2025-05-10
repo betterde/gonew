@@ -26,6 +26,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/betterde/gonew/internal/edit"
+	"github.com/betterde/gonew/internal/project"
 	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
 	"go/parser"
@@ -44,6 +45,12 @@ import (
 	"text/template"
 )
 
+var (
+	src    string
+	dst    string
+	config *project.Config
+)
+
 // initCmd represents the init command
 var initCmd = &cobra.Command{
 	Use:   "init <src> [dst]",
@@ -51,11 +58,6 @@ var initCmd = &cobra.Command{
 	Args:  cobra.MinimumNArgs(1),
 	Short: "Initialize a new project using a template",
 }
-
-var (
-	src string
-	dst string
-)
 
 func init() {
 	rootCmd.AddCommand(initCmd)
@@ -173,12 +175,12 @@ func initProject(cmd *cobra.Command, args []string) {
 	}
 
 	templateFile := filepath.Join(dir, "template.yaml")
-	prompts, err := readConfig(templateFile)
+	err = readConfig(templateFile)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	inputs, err := runPrompts(prompts)
+	inputs, err := runPrompts(config)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -186,6 +188,13 @@ func initProject(cmd *cobra.Command, args []string) {
 	err = replaceVars(dir, inputs)
 	if err != nil {
 		log.Fatal(err)
+	}
+
+	if config.DeleteTemplateFile {
+		err = os.Remove(templateFile)
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 
 	log.Printf("initialized %s in %s", dst, dir)
@@ -265,26 +274,26 @@ func fixGoMod(data []byte, dstMod string) []byte {
 }
 
 // readConfig Reading YAML configuration files
-func readConfig(filename string) (map[string]string, error) {
-	var config map[string]string
+func readConfig(filename string) error {
 	data, err := os.ReadFile(filename)
 	if err != nil {
-		return config, err
+		return err
 	}
+
 	err = yaml.Unmarshal(data, &config)
-	return config, err
+	return err
 }
 
 // runPrompts Run interactive prompts based on configuration
-func runPrompts(config map[string]string) (map[string]string, error) {
+func runPrompts(config *project.Config) (map[string]string, error) {
 	answers := make(map[string]string)
 
-	for key, desc := range config {
+	for _, variable := range config.Variables {
 		prompt := promptui.Prompt{
-			Label: desc,
+			Label: variable.Placeholder,
 			Validate: func(input string) error {
 				if len(input) == 0 {
-					return fmt.Errorf(desc)
+					return fmt.Errorf(variable.Placeholder)
 				}
 				return nil
 			},
@@ -294,7 +303,7 @@ func runPrompts(config map[string]string) (map[string]string, error) {
 		if err != nil {
 			return nil, err
 		}
-		answers[key] = name
+		answers[variable.Name] = name
 	}
 
 	return answers, nil
