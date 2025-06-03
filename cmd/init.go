@@ -46,8 +46,8 @@ import (
 )
 
 var (
-	src    string
-	dst    string
+	srcMod string
+	dstMod string
 	config *project.Config
 )
 
@@ -81,21 +81,21 @@ func initProject(cmd *cobra.Command, args []string) {
 		}
 	}
 
-	src = args[0]
-	ver := src
+	srcMod = args[0]
+	ver := srcMod
 	if !strings.Contains(ver, "@") {
 		ver += "@latest"
 	}
 
-	src, _, _ = strings.Cut(src, "@")
-	if err := module.CheckPath(src); err != nil {
+	srcMod, _, _ = strings.Cut(srcMod, "@")
+	if err := module.CheckPath(srcMod); err != nil {
 		log.Fatalf("invalid source module name: %v", err)
 	}
 
-	dst = src
+	dstMod = srcMod
 	if len(args) >= 2 {
-		dst = args[1]
-		if err := module.CheckPath(dst); err != nil {
+		dstMod = args[1]
+		if err := module.CheckPath(dstMod); err != nil {
 			log.Fatalf("invalid destination module name: %v", err)
 		}
 	}
@@ -104,7 +104,7 @@ func initProject(cmd *cobra.Command, args []string) {
 	if len(args) == 3 {
 		dir = args[2]
 	} else {
-		dir = "." + string(filepath.Separator) + path.Base(dst)
+		dir = "." + string(filepath.Separator) + path.Base(dstMod)
 	}
 
 	// Dir must not exist or must be an empty directory.
@@ -159,10 +159,10 @@ func initProject(cmd *cobra.Command, args []string) {
 
 		isRoot := !strings.Contains(rel, string(filepath.Separator))
 		if strings.HasSuffix(rel, ".go") {
-			data = fixGo(data, rel, src, dst, isRoot)
+			data = fixGo(data, rel, srcMod, dstMod, isRoot)
 		}
 		if rel == "go.mod" {
-			data = fixGoMod(data, dst)
+			data = fixGoMod(data, dstMod)
 		}
 
 		if err := os.WriteFile(dstPath, data, 0666); err != nil {
@@ -197,7 +197,7 @@ func initProject(cmd *cobra.Command, args []string) {
 		}
 	}
 
-	log.Printf("initialized %s in %s", dst, dir)
+	log.Printf("initialized %s in %s", dstMod, dir)
 }
 
 // fixGo rewrites the Go source in data to replace srcMod with dstMod.
